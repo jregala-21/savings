@@ -1,75 +1,206 @@
 <!DOCTYPE html>
-  </table>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Savings Tracker PH</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #059669; --withdraw: #dc2626; --bg: #f3f4f6; --card: #ffffff; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg); 
+            margin: 0; padding: 15px; 
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        /* Header Card */
+        .balance-card {
+            background: linear-gradient(135deg, #065f46 0%, #059669 100%);
+            color: white; padding: 25px; border-radius: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px; position: relative; overflow: hidden;
+        }
+
+        .balance-label { font-size: 0.9rem; opacity: 0.9; font-weight: 600; }
+        .balance-amount { font-size: 2.2rem; font-weight: 700; margin: 5px 0; }
+
+        /* Grid Layout */
+        .grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
+
+        .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        h3 { margin-top: 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Form */
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.8rem; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; }
+        input, select { 
+            width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; 
+            font-size: 1rem; font-family: inherit; background: #f9fafb;
+        }
+        input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+        
+        .submit-btn { 
+            width: 100%; padding: 14px; background: #111827; color: white; 
+            border: none; border-radius: 10px; font-weight: 700; font-size: 1rem;
+            cursor: pointer; transition: transform 0.1s; margin-top: 10px;
+        }
+        .submit-btn:active { transform: scale(0.98); }
+
+        /* History List/Table */
+        .history-list { margin-top: 10px; }
+        .history-item { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #f3f4f6;
+        }
+        .history-info .name { font-weight: 700; font-size: 0.95rem; }
+        .history-info .desc { font-size: 0.8rem; color: #6b7280; }
+        .history-date { font-size: 0.75rem; color: #9ca3af; }
+        .amount-tag { font-weight: 700; font-size: 1rem; }
+        .amt-pos { color: var(--primary); }
+        .amt-neg { color: var(--withdraw); }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            .balance-amount { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="balance-card">
+        <div class="balance-label">Available Savings</div>
+        <div class="balance-amount" id="totalBalance">₱0.00</div>
+        <div id="lastUpdate" style="font-size: 0.7rem; opacity: 0.7;">Updating...</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Add Record</h3>
+            <form id="savingsForm">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="name" placeholder="Who's saving?" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="form-group">
+                    <label>Transaction Type</label>
+                    <select id="type">
+                        <option value="Debit">Debit (Deposit)</option>
+                        <option value="Withdraw">Withdraw (Expense)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount (PHP)</label>
+                    <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="description" placeholder="What's this for?" required>
+                </div>
+                <button type="submit" class="submit-btn" id="submitBtn">Save Entry</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>Recent Activity 
+                <span id="loader" style="font-size: 0.8rem; color: var(--primary); font-weight: normal;"></span>
+            </h3>
+            <div id="historyList" class="history-list">
+                </div>
+        </div>
+    </div>
 </div>
 
 <script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwxtvqp3h_tDAIpf3FtljWUB663_7JJTaYo77hYxbVm6GVpYgtxd5ScihbhD91hCuWMXg/exec';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwxtvqp3h_tDAIpf3FtljWUB663_7JJTaYo77hYxbVm6GVpYgtxd5ScihbhD91hCuWMXg/exec";
+    // Auto-set today's date
+    document.getElementById('date').valueAsDate = new Date();
 
-async function saveData() {
+    async function fetchData() {
+        const list = document.getElementById('historyList');
+        const loader = document.getElementById('loader');
+        loader.innerText = "Refreshing...";
+        
+        try {
+            const response = await fetch(WEB_APP_URL);
+            const data = await response.json();
+            
+            let total = 0;
+            list.innerHTML = '';
+            
+            // Show latest 15 records
+            data.reverse().forEach(row => {
+                const amt = parseFloat(row.amount);
+                total += amt;
+                
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-info">
+                        <div class="name">${row.name || 'Anonymous'}</div>
+                        <div class="desc">${row.description} <span class="history-date">• ${new Date(row.date).toLocaleDateString()}</span></div>
+                    </div>
+                    <div class="amount-tag ${amt >= 0 ? 'amt-pos' : 'amt-neg'}">
+                        ${amt >= 0 ? '+' : ''}${amt.toLocaleString('en-PH', {minimumFractionDigits: 2})}
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+            
+            document.getElementById('totalBalance').innerText = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+            document.getElementById('lastUpdate').innerText = "Last sync: " + new Date().toLocaleTimeString();
+            loader.innerText = "";
+        } catch (err) {
+            list.innerHTML = '<div style="color:red; font-size: 0.8rem;">Failed to sync with Google Sheets. Check your URL.</div>';
+            loader.innerText = "Error";
+        }
+    }
 
-  const date = document.getElementById("date").value;
-  const description = document.getElementById("description").value;
-  const amount = document.getElementById("amount").value;
-  const type = document.getElementById("type").value;
+    document.getElementById('savingsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "Syncing...";
 
-  if (!date || !description || !amount) {
-    alert("Please fill all fields");
-    return;
-  }
+        const formData = {
+            name: document.getElementById('name').value,
+            date: document.getElementById('date').value,
+            type: document.getElementById('type').value,
+            amount: document.getElementById('amount').value,
+            description: document.getElementById('description').value
+        };
 
-  const data = {
-    date,
-    description,
-    amount,
-    type
-  };
+        try {
+            await fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(formData)
+            });
+            
+            document.getElementById('savingsForm').reset();
+            document.getElementById('date').valueAsDate = new Date();
+            fetchData(); 
+        } catch (err) {
+            alert("Connection error. Data might not have saved.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Save Entry";
+        }
+    });
 
-  await fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify(data)
-  });
-
-  document.getElementById("description").value = "";
-  document.getElementById("amount").value = "";
-
-  loadData();
-}
-
-async function loadData() {
-
-  const response = await fetch(SCRIPT_URL);
-  const records = await response.json();
-
-  const tableBody = document.getElementById("tableBody");
-  tableBody.innerHTML = "";
-
-  let latestTotal = 0;
-
-  records.forEach(record => {
-
-    latestTotal = record.totalSavings;
-
-    const row = `
-      <tr>
-        <td>${record.date}</td>
-        <td>${record.description}</td>
-        <td>₱${record.amount}</td>
-        <td class="${record.type === 'Deposit' ? 'deposit' : 'withdraw'}">
-          ${record.type}
-        </td>
-        <td>₱${record.totalSavings}</td>
-      </tr>
-    `;
-
-    tableBody.innerHTML += row;
-  });
-
-  document.getElementById("totalSavings").innerText = latestTotal;
-}
-
-loadData();
-
+    window.onload = fetchData;
 </script>
 
 </body>
