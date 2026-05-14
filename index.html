@@ -6,7 +6,7 @@
     <title>Savings Tracker PH</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #059669; --withdraw: #dc2626; --bg: #f3f4f6; --card: #ffffff; }
+        :root { --primary: #059669; --withdraw: #dc2626; --bg: #f3f4f6; --card: #ffffff; --progress-bg: rgba(255,255,255,0.2); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         body { 
@@ -24,16 +24,37 @@
             background: linear-gradient(135deg, #065f46 0%, #059669 100%);
             color: white; padding: 25px; border-radius: 20px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px; position: relative; overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
         }
 
-        .balance-label { font-size: 0.9rem; opacity: 0.9; font-weight: 600; }
-        .balance-amount { font-size: 2.2rem; font-weight: 700; margin: 5px 0; }
+        .balance-grid { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; }
+        .balance-label { font-size: 0.9rem; opacity: 0.9; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .balance-amount { font-size: 2.2rem; font-weight: 700; margin: 5px 0; letter-spacing: -1px; }
+
+        /* Eye Button Styling */
+        .visibility-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            backdrop-filter: blur(4px);
+            transition: background 0.2s;
+        }
+        .visibility-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+        /* Target Progress Styling */
+        .target-container { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+        .target-meta { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px; font-weight: 600; }
+        .progress-bar-bg { background: var(--progress-bg); height: 12px; border-radius: 10px; overflow: hidden; position: relative; }
+        .progress-fill { background: #fff; height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 10px; }
 
         /* Grid Layout */
         .grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
-
-        .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
         h3 { margin-top: 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
 
         /* Form */
@@ -52,7 +73,7 @@
         }
         .submit-btn:active { transform: scale(0.98); }
 
-        /* History List/Table */
+        /* History List */
         .history-list { margin-top: 10px; }
         .history-item { 
             display: flex; justify-content: space-between; align-items: center;
@@ -65,7 +86,6 @@
         .amt-pos { color: var(--primary); }
         .amt-neg { color: var(--withdraw); }
 
-        /* Mobile Adjustments */
         @media (max-width: 768px) {
             .grid { grid-template-columns: 1fr; }
             .balance-amount { font-size: 1.8rem; }
@@ -76,96 +96,194 @@
 
 <div class="container">
     <div class="balance-card">
-        <div class="balance-label">Available Savings</div>
-        <div class="balance-amount" id="totalBalance">₱0.00</div>
-        <div id="lastUpdate" style="font-size: 0.7rem; opacity: 0.7;">Updating...</div>
+        <div class="balance-grid">
+            <div>
+                <div class="balance-label">
+                    Total Savings 
+                    <button class="visibility-btn" onclick="toggleVisibility()" id="eyeBtn">Hide</button>
+                </div>
+                <div class="balance-amount" id="totalBalance">₱0.00</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="balance-label">Allocated to Goal</div>
+                <div id="allocatedAmount" style="font-size: 1.2rem; font-weight: 700;">₱0.00</div>
+            </div>
+        </div>
+        
+        <div class="target-container">
+            <div class="target-meta">
+                <span id="targetNameDisplay">Goal Progress</span>
+                <span id="targetPercentDisplay">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div id="progressBar" class="progress-fill"></div>
+            </div>
+            <div style="font-size: 0.75rem; margin-top: 8px; opacity: 0.8; text-align: right;" id="remainingDisplay">
+                Target: ₱0.00
+            </div>
+        </div>
+        <div id="lastUpdate" style="font-size: 0.7rem; opacity: 0.7; margin-top: 10px;">Updating...</div>
     </div>
 
     <div class="grid">
-        <div class="card">
-            <h3>Add Record</h3>
-            <form id="savingsForm">
+        <div class="left-col">
+            <div class="card">
+                <h3>Goal Settings</h3>
                 <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" id="name" placeholder="Who's saving?" required>
+                    <label>Goal Name</label>
+                    <input type="text" id="goalName" placeholder="e.g. New Phone" oninput="updateCalculations()">
                 </div>
                 <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="date" required>
+                    <label>Target Amount (₱)</label>
+                    <input type="number" id="targetAmount" value="10000" oninput="updateCalculations()">
                 </div>
                 <div class="form-group">
-                    <label>Transaction Type</label>
-                    <select id="type">
-                        <option value="Debit">Debit (Deposit)</option>
-                        <option value="Withdraw">Withdraw (Expense)</option>
-                    </select>
+                    <label>Allocation % from Savings</label>
+                    <input type="range" id="allocationRange" min="1" max="100" value="50" oninput="updateCalculations()">
+                    <div style="text-align: right; font-size: 0.8rem; font-weight: bold;" id="rangeVal">50%</div>
                 </div>
-                <div class="form-group">
-                    <label>Amount (PHP)</label>
-                    <input type="number" id="amount" step="0.01" placeholder="0.00" required>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <input type="text" id="description" placeholder="What's this for?" required>
-                </div>
-                <button type="submit" class="submit-btn" id="submitBtn">Save Entry</button>
-            </form>
+            </div>
+
+            <div class="card">
+                <h3>Add Record</h3>
+                <form id="savingsForm">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="name" placeholder="Who's saving?" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Transaction Type</label>
+                        <select id="type">
+                            <option value="Debit">Debit (Deposit)</option>
+                            <option value="Withdraw">Withdraw (Expense)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (PHP)</label>
+                        <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="description" placeholder="What's this for?" required>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn">Save Entry</button>
+                </form>
+            </div>
         </div>
 
         <div class="card">
             <h3>Recent Activity 
                 <span id="loader" style="font-size: 0.8rem; color: var(--primary); font-weight: normal;"></span>
             </h3>
-            <div id="historyList" class="history-list">
-                </div>
+            <div id="historyList" class="history-list"></div>
         </div>
     </div>
 </div>
 
 <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwxtvqp3h_tDAIpf3FtljWUB663_7JJTaYo77hYxbVm6GVpYgtxd5ScihbhD91hCuWMXg/exec';
+    
+    let currentTotalSavings = 0;
+    let isHidden = false;
+    let rawData = [];
 
-    // Auto-set today's date
-    document.getElementById('date').valueAsDate = new Date();
+    window.onload = () => {
+        const savedGoal = JSON.parse(localStorage.getItem('savingsGoal')) || { name: 'Savings Goal', target: 10000, percent: 50 };
+        document.getElementById('goalName').value = savedGoal.name;
+        document.getElementById('targetAmount').value = savedGoal.target;
+        document.getElementById('allocationRange').value = savedGoal.percent;
+        
+        // Load privacy preference
+        isHidden = localStorage.getItem('savingsHidden') === 'true';
+        updateEyeButton();
+
+        document.getElementById('date').valueAsDate = new Date();
+        fetchData();
+    };
+
+    function toggleVisibility() {
+        isHidden = !isHidden;
+        localStorage.setItem('savingsHidden', isHidden);
+        updateEyeButton();
+        renderData(); // Re-render numbers as asterisks or currency
+    }
+
+    function updateEyeButton() {
+        document.getElementById('eyeBtn').innerText = isHidden ? "Show" : "Hide";
+    }
+
+    function formatAmount(num) {
+        if (isHidden) return "₱ ****";
+        return `₱${num.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+    }
+
+    function updateCalculations() {
+        const goalName = document.getElementById('goalName').value || "Savings Goal";
+        const targetAmount = parseFloat(document.getElementById('targetAmount').value) || 0;
+        const allocationPercent = parseInt(document.getElementById('allocationRange').value);
+        
+        document.getElementById('rangeVal').innerText = allocationPercent + "%";
+        document.getElementById('targetNameDisplay').innerText = goalName;
+        
+        const allocated = currentTotalSavings * (allocationPercent / 100);
+        const progressPercent = targetAmount > 0 ? Math.min((allocated / targetAmount) * 100, 100) : 0;
+        
+        document.getElementById('totalBalance').innerText = formatAmount(currentTotalSavings);
+        document.getElementById('allocatedAmount').innerText = formatAmount(allocated);
+        document.getElementById('targetPercentDisplay').innerText = progressPercent.toFixed(0) + "%";
+        document.getElementById('progressBar').style.width = progressPercent + "%";
+        document.getElementById('remainingDisplay').innerText = `Target: ₱${targetAmount.toLocaleString('en-PH')}`;
+
+        localStorage.setItem('savingsGoal', JSON.stringify({ name: goalName, target: targetAmount, percent: allocationPercent }));
+    }
 
     async function fetchData() {
-        const list = document.getElementById('historyList');
         const loader = document.getElementById('loader');
         loader.innerText = "Refreshing...";
         
         try {
             const response = await fetch(WEB_APP_URL);
-            const data = await response.json();
-            
-            let total = 0;
-            list.innerHTML = '';
-            
-            // Show latest 15 records
-            data.reverse().forEach(row => {
-                const amt = parseFloat(row.amount);
-                total += amt;
-                
-                const item = document.createElement('div');
-                item.className = 'history-item';
-                item.innerHTML = `
-                    <div class="history-info">
-                        <div class="name">${row.name || 'Anonymous'}</div>
-                        <div class="desc">${row.description} <span class="history-date">• ${new Date(row.date).toLocaleDateString()}</span></div>
-                    </div>
-                    <div class="amount-tag ${amt >= 0 ? 'amt-pos' : 'amt-neg'}">
-                        ${amt >= 0 ? '+' : ''}${amt.toLocaleString('en-PH', {minimumFractionDigits: 2})}
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-            
-            document.getElementById('totalBalance').innerText = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
-            document.getElementById('lastUpdate').innerText = "Last sync: " + new Date().toLocaleTimeString();
+            rawData = await response.json();
+            renderData();
             loader.innerText = "";
         } catch (err) {
-            list.innerHTML = '<div style="color:red; font-size: 0.8rem;">Failed to sync with Google Sheets. Check your URL.</div>';
+            console.error(err);
             loader.innerText = "Error";
         }
+    }
+
+    function renderData() {
+        const list = document.getElementById('historyList');
+        currentTotalSavings = 0;
+        list.innerHTML = '';
+        
+        // Copy array before reverse to avoid mutating data
+        const displayData = [...rawData].reverse();
+        
+        rawData.forEach(row => currentTotalSavings += parseFloat(row.amount));
+
+        displayData.forEach(row => {
+            const amt = parseFloat(row.amount);
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `
+                <div class="history-info">
+                    <div class="name">${row.name || 'Anonymous'}</div>
+                    <div class="desc">${row.description} <span class="history-date">• ${new Date(row.date).toLocaleDateString()}</span></div>
+                </div>
+                <div class="amount-tag ${amt >= 0 ? 'amt-pos' : 'amt-neg'}">
+                    ${amt >= 0 ? '+' : ''}${formatAmount(amt).replace('₱ ', '')}
+                </div>
+            `;
+            list.appendChild(item);
+        });
+
+        document.getElementById('lastUpdate').innerText = "Last sync: " + new Date().toLocaleTimeString();
+        updateCalculations();
     }
 
     document.getElementById('savingsForm').addEventListener('submit', async function(e) {
@@ -193,14 +311,12 @@
             document.getElementById('date').valueAsDate = new Date();
             fetchData(); 
         } catch (err) {
-            alert("Connection error. Data might not have saved.");
+            alert("Error saving data.");
         } finally {
             btn.disabled = false;
             btn.innerText = "Save Entry";
         }
     });
-
-    window.onload = fetchData;
 </script>
 
 </body>
