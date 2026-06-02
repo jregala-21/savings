@@ -6,7 +6,7 @@
     <title>Savings Tracker PH</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #059669; --withdraw: #dc2626; --bg: #f3f4f6; --card: #ffffff; --progress-bg: rgba(255,255,255,0.2); }
+        :root { --primary: #059669; --success-bg: #10b981; --withdraw: #dc2626; --bg: #f3f4f6; --card: #ffffff; --progress-bg: rgba(255,255,255,0.2); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         body { 
@@ -55,26 +55,45 @@
         /* Grid Layout */
         .grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
         .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        h3 { margin-top: 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
+        h3 { margin-top: 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 
-        /* Form */
+        /* Form Controls */
         .form-group { margin-bottom: 12px; }
+        .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .form-row .form-group { flex: 1; margin-bottom: 0; }
         label { display: block; font-size: 0.8rem; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; }
         input, select { 
             width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; 
-            font-size: 1rem; font-family: inherit; background: #f9fafb;
+            font-size: 1rem; font-family: inherit; background: #f9fafb; color: #1f2937;
         }
-        input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+        input:focus, select:focus { outline: 2px solid var(--primary); border-color: transparent; }
         
-        .submit-btn { 
-            width: 100%; padding: 14px; background: #111827; color: white; 
-            border: none; border-radius: 10px; font-weight: 700; font-size: 1rem;
-            cursor: pointer; transition: transform 0.1s; margin-top: 10px;
+        /* Installment Badge Panel */
+        .installment-panel {
+            background: #eff6ff; border: 1px dashed #bfdbfe;
+            padding: 12px; border-radius: 10px; margin-top: 15px;
         }
-        .submit-btn:active { transform: scale(0.98); }
+        .installment-title { font-size: 0.8rem; font-weight: 700; color: #1e40af; text-transform: uppercase; margin-bottom: 4px; }
+        .installment-amount { font-size: 1.2rem; font-weight: 700; color: #1d4ed8; }
+
+        /* Cutoff Date Matrix UI Grid */
+        .cutoff-matrix-title { font-size: 0.8rem; font-weight: 700; color: #374151; text-transform: uppercase; margin: 15px 0 6px 0; }
+        .cutoff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 8px; max-height: 160px; overflow-y: auto; padding-right: 4px; }
+        .cutoff-badge { 
+            background: #f3f4f6; border: 1px solid #e5e7eb; padding: 8px; border-radius: 8px; 
+            font-size: 0.75rem; font-weight: 600; text-align: center; color: #4b5563;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .cutoff-badge.success-processed {
+            background: #d1fae5; border-color: #34d399; color: #065f46; font-weight: 700;
+        }
+
+        /* Filter and Summary Panel Styling */
+        .filter-panel { background: #f9fafb; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 15px; }
+        .summary-badge { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 0.9rem; margin-top: 8px; color: #374151; background: #fff; padding: 8px 12px; border-radius: 8px; border: 1px solid #e5e7eb; }
 
         /* History List */
-        .history-list { margin-top: 10px; }
+        .history-list { margin-top: 10px; max-height: 500px; overflow-y: auto; }
         .history-item { 
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 0; border-bottom: 1px solid #f3f4f6;
@@ -85,6 +104,14 @@
         .amount-tag { font-weight: 700; font-size: 1rem; }
         .amt-pos { color: var(--primary); }
         .amt-neg { color: var(--withdraw); }
+
+        /* Form Submissions Layout Button */
+        .submit-btn {
+            background: var(--primary); color: white; border: none; padding: 12px;
+            width: 100%; border-radius: 10px; font-weight: 700; font-size: 1rem;
+            cursor: pointer; margin-top: 10px; transition: opacity 0.2s;
+        }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         @media (max-width: 768px) {
             .grid { grid-template-columns: 1fr; }
@@ -99,27 +126,28 @@
         <div class="balance-grid">
             <div>
                 <div class="balance-label">
-                    Total Savings 
+                    Total Pooled Savings 
                     <button class="visibility-btn" onclick="toggleVisibility()" id="eyeBtn">Hide</button>
                 </div>
                 <div class="balance-amount" id="totalBalance">₱0.00</div>
             </div>
             <div style="text-align: right;">
-                <div class="balance-label">Allocated to Goal</div>
+                <div class="balance-label">Active Savings Balance</div>
                 <div id="allocatedAmount" style="font-size: 1.2rem; font-weight: 700;">₱0.00</div>
             </div>
         </div>
         
         <div class="target-container">
             <div class="target-meta">
-                <span id="targetNameDisplay">Goal Progress</span>
+                <span id="targetNameDisplay">Target Savings Goal</span>
                 <span id="targetPercentDisplay">0%</span>
             </div>
             <div class="progress-bar-bg">
                 <div id="progressBar" class="progress-fill"></div>
             </div>
-            <div style="font-size: 0.75rem; margin-top: 8px; opacity: 0.8; text-align: right;" id="remainingDisplay">
-                Target: ₱0.00
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-top: 8px; opacity: 0.8;" id="targetFooter">
+                <span id="goalTimeframeDisplay">Continuous Plan</span>
+                <span id="remainingDisplay">Target: ₱0.00</span>
             </div>
         </div>
         <div id="lastUpdate" style="font-size: 0.7rem; opacity: 0.7; margin-top: 10px;">Updating...</div>
@@ -128,20 +156,33 @@
     <div class="grid">
         <div class="left-col">
             <div class="card">
-                <h3>Goal Settings</h3>
+                <h3 style="margin-bottom:15px;">Savings Goal Target</h3>
+                
                 <div class="form-group">
                     <label>Goal Name</label>
-                    <input type="text" id="goalName" placeholder="e.g. New Phone" oninput="updateCalculations()">
+                    <input type="text" id="goalName" placeholder="e.g., Emergency Fund" oninput="saveAndCalculateGoals()">
                 </div>
+                
                 <div class="form-group">
-                    <label>Target Amount (₱)</label>
-                    <input type="number" id="targetAmount" value="10000" oninput="updateCalculations()">
+                    <label>Target Financial Goal (₱)</label>
+                    <input type="number" id="targetAmount" value="20000" oninput="saveAndCalculateGoals()">
                 </div>
+
                 <div class="form-group">
-                    <label>Allocation % from Savings</label>
-                    <input type="range" id="allocationRange" min="1" max="100" value="50" oninput="updateCalculations()">
-                    <div style="text-align: right; font-size: 0.8rem; font-weight: bold;" id="rangeVal">50%</div>
+                    <label>Target Completion Date</label>
+                    <input type="date" id="targetDeadline" onchange="saveAndCalculateGoals()">
                 </div>
+
+                <!-- Balanced Installment Plan Assessment Framework Window -->
+                <div class="installment-panel">
+                    <div class="installment-title" id="installmentLabel">Adjusted Cutoff Plan</div>
+                    <div class="installment-amount" id="installmentPlanDisplay">₱0.00 / cutoff</div>
+                    <div style="font-size: 0.75rem; color: #4b5563; margin-top: 2px;" id="cutoffCountDisplay">0 remaining cutoffs (15th/30th)</div>
+                </div>
+
+                <!-- Timeline Visualizing Schedule Output Interface Component -->
+                <div class="cutoff-matrix-title">Projected Cutoff Matrix Schedule</div>
+                <div id="cutoffGridUI" class="cutoff-grid"></div>
             </div>
 
             <div class="card">
@@ -155,16 +196,18 @@
                         <label>Date</label>
                         <input type="date" id="date" required>
                     </div>
-                    <div class="form-group">
-                        <label>Transaction Type</label>
-                        <select id="type">
-                            <option value="Debit">Debit (Deposit)</option>
-                            <option value="Withdraw">Withdraw (Expense)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Amount (PHP)</label>
-                        <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Transaction Type</label>
+                            <select id="type">
+                                <option value="Debit">Debit (Deposit)</option>
+                                <option value="Withdraw">Withdraw (Expense)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount (PHP)</label>
+                            <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Description</label>
@@ -179,6 +222,20 @@
             <h3>Recent Activity 
                 <span id="loader" style="font-size: 0.8rem; color: var(--primary); font-weight: normal;"></span>
             </h3>
+            
+            <div class="filter-panel">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Filter Activity By Contributor Name</label>
+                    <select id="nameFilterSelect" onchange="handleFilterChange()">
+                        <option value="ALL">-- View All Contributor Streams --</option>
+                    </select>
+                </div>
+                <div class="summary-badge">
+                    <span>Filtered Running Subtotal:</span>
+                    <span id="filteredTotalDisplay">₱0.00</span>
+                </div>
+            </div>
+
             <div id="historyList" class="history-list"></div>
         </div>
     </div>
@@ -190,26 +247,53 @@
     let currentTotalSavings = 0;
     let isHidden = false;
     let rawData = [];
+    let singleGoal = { name: "Travel Fund", target: 20000, deadline: "2026-12-30" };
 
     window.onload = () => {
-        const savedGoal = JSON.parse(localStorage.getItem('savingsGoal')) || { name: 'Savings Goal', target: 10000, percent: 50 };
-        document.getElementById('goalName').value = savedGoal.name;
-        document.getElementById('targetAmount').value = savedGoal.target;
-        document.getElementById('allocationRange').value = savedGoal.percent;
+        loadGoalProfile();
         
-        // Load privacy preference
         isHidden = localStorage.getItem('savingsHidden') === 'true';
         updateEyeButton();
 
         document.getElementById('date').valueAsDate = new Date();
+        
+        if(!singleGoal.deadline) {
+            const defaultDate = new Date();
+            defaultDate.setMonth(defaultDate.getMonth() + 6);
+            singleGoal.deadline = defaultDate.toISOString().split('T')[0];
+        }
+        
+        hydrateGoalForm();
         fetchData();
     };
+
+    function loadGoalProfile() {
+        const stored = localStorage.getItem('singleSavingsGoal');
+        if (stored) {
+            try { singleGoal = JSON.parse(stored); } catch(e) { }
+        }
+    }
+
+    function hydrateGoalForm() {
+        document.getElementById('goalName').value = singleGoal.name;
+        document.getElementById('targetAmount').value = singleGoal.target;
+        document.getElementById('targetDeadline').value = singleGoal.deadline || '';
+    }
+
+    function saveAndCalculateGoals() {
+        singleGoal.name = document.getElementById('goalName').value || "Savings Goal";
+        singleGoal.target = parseFloat(document.getElementById('targetAmount').value) || 0;
+        singleGoal.deadline = document.getElementById('targetDeadline').value;
+        
+        localStorage.setItem('singleSavingsGoal', JSON.stringify(singleGoal));
+        updateCalculations();
+    }
 
     function toggleVisibility() {
         isHidden = !isHidden;
         localStorage.setItem('savingsHidden', isHidden);
         updateEyeButton();
-        renderData(); // Re-render numbers as asterisks or currency
+        renderData(); 
     }
 
     function updateEyeButton() {
@@ -221,24 +305,113 @@
         return `₱${num.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
     }
 
+    // Parse array mapping parameters for chronological upcoming pay periods
+    function getCutoffsList(targetDateStr) {
+        if (!targetDateStr) return [];
+        
+        const today = new Date();
+        const target = new Date(targetDateStr);
+        if (target <= today) return [];
+        
+        let cutoffs = [];
+        let loopDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        while (loopDate <= target) {
+            const day = loopDate.getDate();
+            const month = loopDate.getMonth();
+            const year = loopDate.getFullYear();
+            
+            let isCutoff = false;
+            if (day === 15 || day === 30) {
+                isCutoff = true;
+            } else if (day === 28 && month === 1 && (new Date(year, 1, 29).getMonth() !== 1)) {
+                isCutoff = true; // February non-leap year processing adjustments
+            }
+            
+            if (isCutoff) {
+                cutoffs.push({
+                    dateString: loopDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: new Date(loopDate)
+                });
+            }
+            loopDate.setDate(loopDate.getDate() + 1);
+        }
+        return cutoffs;
+    }
+
     function updateCalculations() {
-        const goalName = document.getElementById('goalName').value || "Savings Goal";
-        const targetAmount = parseFloat(document.getElementById('targetAmount').value) || 0;
-        const allocationPercent = parseInt(document.getElementById('allocationRange').value);
+        document.getElementById('targetNameDisplay').innerText = singleGoal.name;
         
-        document.getElementById('rangeVal').innerText = allocationPercent + "%";
-        document.getElementById('targetNameDisplay').innerText = goalName;
+        // Accumulate active parameters representing absolute totals pooled inside balance
+        let totalSavingsPool = 0;
+        rawData.forEach(row => {
+            totalSavingsPool += parseFloat(row.amount);
+        });
+
+        const progressPercent = singleGoal.target > 0 ? Math.min((totalSavingsPool / singleGoal.target) * 100, 100) : 0;
         
-        const allocated = currentTotalSavings * (allocationPercent / 100);
-        const progressPercent = targetAmount > 0 ? Math.min((allocated / targetAmount) * 100, 100) : 0;
-        
-        document.getElementById('totalBalance').innerText = formatAmount(currentTotalSavings);
-        document.getElementById('allocatedAmount').innerText = formatAmount(allocated);
+        document.getElementById('totalBalance').innerText = formatAmount(totalSavingsPool);
+        document.getElementById('allocatedAmount').innerText = formatAmount(totalSavingsPool);
         document.getElementById('targetPercentDisplay').innerText = progressPercent.toFixed(0) + "%";
         document.getElementById('progressBar').style.width = progressPercent + "%";
-        document.getElementById('remainingDisplay').innerText = `Target: ₱${targetAmount.toLocaleString('en-PH')}`;
+        document.getElementById('remainingDisplay').innerText = `Target: ₱${singleGoal.target.toLocaleString('en-PH')}`;
 
-        localStorage.setItem('savingsGoal', JSON.stringify({ name: goalName, target: targetAmount, percent: allocationPercent }));
+        if (singleGoal.deadline) {
+            document.getElementById('goalTimeframeDisplay').innerText = `Target Date: ${new Date(singleGoal.deadline).toLocaleDateString()}`;
+        } else {
+            document.getElementById('goalTimeframeDisplay').innerText = "Continuous Plan";
+        }
+
+        // Installment Breakdown Pipeline Engine
+        const cutoffList = getCutoffsList(singleGoal.deadline);
+        const cutoffsRemaining = cutoffList.length;
+        
+        // dynamically lower total targets using the recent pooled savings metric configuration 
+        const outstandingAmountToSave = Math.max(singleGoal.target - totalSavingsPool, 0);
+        
+        document.getElementById('cutoffCountDisplay').innerText = `${cutoffsRemaining} pay periods remaining (15th/30th)`;
+        
+        let requiredInstallmentPerCutoff = 0;
+        if (cutoffsRemaining > 0 && outstandingAmountToSave > 0) {
+            requiredInstallmentPerCutoff = outstandingAmountToSave / cutoffsRemaining;
+            document.getElementById('installmentPlanDisplay').innerText = `${formatAmount(requiredInstallmentPerCutoff)} / cutoff`;
+        } else if (outstandingAmountToSave === 0 && singleGoal.target > 0) {
+            document.getElementById('installmentPlanDisplay').innerText = "Goal Fully Achieved! 🎉";
+        } else {
+            document.getElementById('installmentPlanDisplay').innerText = "₱0.00 / cutoff";
+        }
+
+        // Render visual micro elements tracking milestone intervals inside schedule grid components
+        renderCutoffScheduleUI(cutoffList, totalSavingsPool, requiredInstallmentPerCutoff);
+    }
+
+    function renderCutoffScheduleUI(cutoffs, totalSavings, requiredPerCutoff) {
+        const gridContainer = document.getElementById('cutoffGridUI');
+        gridContainer.innerHTML = '';
+        
+        if (cutoffs.length === 0) {
+            gridContainer.innerHTML = `<div style="grid-column: 1/-1; text-align:center; font-size:0.75rem; color:#9ca3af; padding:10px;">Select a future completion date to render schedule.</div>`;
+            return;
+        }
+
+        // Running balance checks to systematically trace successful intervals
+        let runningCoveragePool = totalSavings;
+
+        cutoffs.forEach((cutoff, index) => {
+            const badge = document.createElement('div');
+            badge.className = 'cutoff-badge';
+            badge.innerText = cutoff.dateString;
+
+            // When savings exist, the remaining targets drop, validating active/green statuses
+            if (runningCoveragePool >= requiredPerCutoff && requiredPerCutoff > 0) {
+                badge.classList.add('success-processed');
+                runningCoveragePool -= requiredPerCutoff; 
+            } else if (requiredPerCutoff === 0 && totalSavings >= singleGoal.target) {
+                badge.classList.add('success-processed');
+            }
+
+            gridContainer.appendChild(badge);
+        });
     }
 
     async function fetchData() {
@@ -248,6 +421,8 @@
         try {
             const response = await fetch(WEB_APP_URL);
             rawData = await response.json();
+            
+            extractUniqueNamesToFilter();
             renderData();
             loader.innerText = "";
         } catch (err) {
@@ -256,31 +431,81 @@
         }
     }
 
+    function extractUniqueNamesToFilter() {
+        const filterSelect = document.getElementById('nameFilterSelect');
+        const previousSelectedValue = filterSelect.value;
+        
+        const namesMap = new Set();
+        rawData.forEach(row => {
+            if (row.name && row.name.trim() !== '') {
+                namesMap.add(row.name.trim());
+            }
+        });
+        
+        filterSelect.innerHTML = '<option value="ALL">-- View All Contributor Streams --</option>';
+        
+        Array.from(namesMap).sort().forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.innerText = name;
+            filterSelect.appendChild(opt);
+        });
+        
+        if (namesMap.has(previousSelectedValue)) {
+            filterSelect.value = previousSelectedValue;
+        } else {
+            filterSelect.value = "ALL";
+        }
+    }
+
+    function handleFilterChange() {
+        renderData();
+    }
+
     function renderData() {
         const list = document.getElementById('historyList');
-        currentTotalSavings = 0;
-        list.innerHTML = '';
+        const filterValue = document.getElementById('nameFilterSelect').value;
         
-        // Copy array before reverse to avoid mutating data
-        const displayData = [...rawData].reverse();
+        currentTotalSavings = 0;
+        let runningFilteredSum = 0;
+        list.innerHTML = '';
         
         rawData.forEach(row => currentTotalSavings += parseFloat(row.amount));
 
-        displayData.forEach(row => {
+        const processedActivityStack = [...rawData].reverse();
+
+        processedActivityStack.forEach(row => {
             const amt = parseFloat(row.amount);
-            const item = document.createElement('div');
-            item.className = 'history-item';
-            item.innerHTML = `
-                <div class="history-info">
-                    <div class="name">${row.name || 'Anonymous'}</div>
-                    <div class="desc">${row.description} <span class="history-date">• ${new Date(row.date).toLocaleDateString()}</span></div>
-                </div>
-                <div class="amount-tag ${amt >= 0 ? 'amt-pos' : 'amt-neg'}">
-                    ${amt >= 0 ? '+' : ''}${formatAmount(amt).replace('₱ ', '')}
-                </div>
-            `;
-            list.appendChild(item);
+            const rowOwnerName = (row.name || 'Anonymous').trim();
+            
+            const descriptionParts = row.description ? row.description.split('||') : [row.description || ''];
+            const pureDescriptionText = descriptionParts[0];
+
+            const matchesFilter = (filterValue === 'ALL' || rowOwnerName === filterValue);
+            
+            if (matchesFilter) {
+                runningFilteredSum += amt;
+                
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-info">
+                        <div class="name">${rowOwnerName}</div>
+                        <div class="desc">${pureDescriptionText} <span class="history-date">• ${new Date(row.date).toLocaleDateString()}</span></div>
+                    </div>
+                    <div class="amount-tag ${amt >= 0 ? 'amt-pos' : 'amt-neg'}">
+                        ${amt >= 0 ? '+' : ''}${formatAmount(amt).replace('₱ ', '')}
+                    </div>
+                `;
+                list.appendChild(item);
+            }
         });
+
+        document.getElementById('filteredTotalDisplay').innerText = formatAmount(runningFilteredSum);
+
+        if (list.children.length === 0) {
+            list.innerHTML = `<div style="text-align:center; color:#6b7280; font-size:0.85rem; padding: 20px 0;">No matching history instances here.</div>`;
+        }
 
         document.getElementById('lastUpdate').innerText = "Last sync: " + new Date().toLocaleTimeString();
         updateCalculations();
@@ -309,9 +534,9 @@
             
             document.getElementById('savingsForm').reset();
             document.getElementById('date').valueAsDate = new Date();
-            fetchData(); 
+            await fetchData(); 
         } catch (err) {
-            alert("Error saving data.");
+            alert("Error saving transaction data.");
         } finally {
             btn.disabled = false;
             btn.innerText = "Save Entry";
