@@ -2,1208 +2,547 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outstanding Balance & History Manager</title>
-    <!-- Loaded jsPDF client library wrapper -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Savings Tracker PH</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            /* Light Theme Variables */
-            --bg-color: #f4f7fb;
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --input-bg: #f8fafc;
-            --border: #e2e8f0;
-            
-            /* Universal Brand Colors */
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-            --danger: #ef4444;
-            --danger-hover: #dc2626;
-            --success: #10b981;
-            --success-hover: #059669;
-            --warning: #f59e0b;
-            --warning-hover: #d97706;
-            --radius: 16px;
+        :root { --primary: #059669; --success-bg: #10b981; --withdraw: #dc2626; --bg: #f3f4f6; --card: #ffffff; --progress-bg: rgba(255,255,255,0.2); }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg); 
+            margin: 0; padding: 15px; 
+            color: #1f2937;
+            line-height: 1.5;
         }
 
-        /* Dark Theme Overrides */
-        [data-theme="dark"] {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --input-bg: #334155;
-            --border: #334155;
-        }
+        .container { max-width: 1000px; margin: 0 auto; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 16px;
-            display: flex;
-            justify-content: center;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 650px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* App Header (Profiles & Theme) */
-        .app-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            padding: 12px 16px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--border);
-            transition: all 0.3s ease;
-        }
-
-        .profile-switcher {
-            display: flex;
-            gap: 8px;
-        }
-
-        .profile-btn {
-            padding: 8px 16px;
-            border: 1px solid var(--border);
-            background: transparent;
-            color: var(--text-muted);
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .profile-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .theme-toggle {
-            background: transparent;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 50%;
-            transition: transform 0.2s;
-        }
-
-        .theme-toggle:hover {
-            transform: scale(1.1);
-        }
-
-        /* Dashboard Cards */
-        .card {
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: var(--radius);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            box-sizing: border-box;
-            border: 1px solid var(--border);
-            transition: all 0.3s ease;
-        }
-
-        /* Metrics Display */
-        .total-card {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
-            text-align: center;
-            padding: 30px 20px;
-            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
-            border: none;
-        }
-
-        .total-card h3 {
-            margin: 0;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            opacity: 0.85;
-            font-weight: 600;
-        }
-
-        .total-amount {
-            font-size: 38px;
-            font-weight: 800;
-            margin-top: 8px;
-            letter-spacing: -1px;
-        }
-
-        h2 {
-            margin-top: 0;
-            font-size: 18px;
-            color: var(--text-main);
+        /* Header Card */
+        .balance-card {
+            background: linear-gradient(135deg, #065f46 0%, #059669 100%);
+            color: white; padding: 25px; border-radius: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
-            font-weight: 700;
+            position: relative;
         }
 
-        /* Goal Tracker Progress Bar Component */
-        .progress-container {
-            background: var(--input-bg);
-            border-radius: 8px;
-            height: 12px;
-            width: 100%;
-            overflow: hidden;
-            margin: 12px 0;
-            border: 1px solid var(--border);
-        }
-        .progress-bar {
-            background: var(--success);
-            height: 100%;
-            width: 0%;
-            transition: width 0.4s ease;
-        }
-        .goal-meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-        .installment-info {
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--primary);
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-top: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .balance-grid { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; }
+        .balance-label { font-size: 0.9rem; opacity: 0.9; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .balance-amount { font-size: 2.2rem; font-weight: 700; margin: 5px 0; letter-spacing: -1px; }
 
-        /* Tabs System */
-        .tabs {
-            display: flex;
-            gap: 10px;
-            background: var(--input-bg);
-            padding: 6px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            transition: background 0.3s ease;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            background: transparent;
-            color: var(--text-muted);
+        /* Eye Button Styling */
+        .visibility-btn {
+            background: rgba(255, 255, 255, 0.2);
             border: none;
+            color: white;
+            padding: 6px 10px;
             border-radius: 8px;
-            font-weight: 600;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
+            font-size: 0.8rem;
+            backdrop-filter: blur(4px);
+            transition: background 0.2s;
         }
+        .visibility-btn:hover { background: rgba(255, 255, 255, 0.3); }
 
-        .tab-btn.active {
-            background: var(--card-bg);
-            color: var(--primary);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
+        /* Target Progress Styling */
+        .target-container { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+        .target-meta { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px; font-weight: 600; }
+        .progress-bar-bg { background: var(--progress-bg); height: 12px; border-radius: 10px; overflow: hidden; position: relative; }
+        .progress-fill { background: #fff; height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 10px; }
 
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* Grid Layout */
+        .grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h3 { margin-top: 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 
         /* Form Controls */
-        .form-group {
-            margin-bottom: 16px;
+        .form-group { margin-bottom: 12px; }
+        .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .form-row .form-group { flex: 1; margin-bottom: 0; }
+        label { display: block; font-size: 0.8rem; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; }
+        input, select { 
+            width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; 
+            font-size: 1rem; font-family: inherit; background: #f9fafb; color: #1f2937;
         }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        input[type="date"] {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            box-sizing: border-box;
-            font-size: 16px;
-            background-color: var(--input-bg);
-            transition: all 0.2s;
-            color: var(--text-main);
-            font-weight: 500;
-            color-scheme: light dark;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-            background-color: var(--card-bg);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-submit { background-color: var(--primary); color: white; }
-        .btn-submit:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
-
-        .btn-danger { background-color: var(--danger); color: white; }
-        .btn-danger:hover { background-color: var(--danger-hover); }
-
-        .btn-pay {
-            background-color: var(--success);
-            color: white;
-            padding: 8px 16px;
-            font-size: 13px;
-            border-radius: 8px;
-            width: auto;
-        }
-        .btn-pay:hover { background-color: var(--success-hover); }
-
-        .btn-update {
-            background-color: transparent;
-            color: var(--primary);
-            border: 1px solid var(--primary);
-            padding: 8px 16px;
-            font-size: 13px;
-            border-radius: 8px;
-            width: auto;
-        }
-        .btn-update:hover {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .btn-revert {
-            background-color: transparent;
-            color: var(--warning);
-            border: 1px solid var(--warning);
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 6px;
-            width: auto;
-        }
-        .btn-revert:hover {
-            background-color: var(--warning);
-            color: white;
-        }
-
-        /* List Items */
-        .list-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .balance-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: var(--card-bg);
-            transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
-        }
-
-        .balance-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-        }
-
-        .item-details {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .item-name { font-weight: 700; font-size: 16px; }
-        .item-meta { font-size: 12px; color: var(--text-muted); }
-
-        .item-right {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 8px;
-        }
-
-        .item-actions-wrapper {
-            display: flex;
-            gap: 8px;
-        }
-
-        .item-amount { font-weight: 800; color: var(--danger); font-size: 17px; }
-        .item-amount.credit { color: var(--success); }
-
-        .status { text-align: center; font-style: italic; color: var(--text-muted); font-size: 14px; margin-top: 8px; }
-        .empty-msg { text-align: center; color: var(--text-muted); padding: 30px 20px; font-weight: 500; }
-
-        /* MODAL STYLES */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(4px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            width: 90%;
-            max-width: 400px;
-            padding: 24px;
-            border-radius: var(--radius);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            transform: translateY(20px);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid var(--border);
-        }
-
-        .modal-overlay.active .modal-content {
-            transform: translateY(0);
-        }
-
-        .modal-header { margin-bottom: 20px; }
-        .modal-header h3 { margin: 0 0 4px 0; font-size: 20px; }
-        .modal-header p { margin: 0; color: var(--text-muted); font-size: 14px; }
+        input:focus, select:focus { outline: 2px solid var(--primary); border-color: transparent; }
         
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
+        /* Installment Badge Panel */
+        .installment-panel {
+            background: #eff6ff; border: 1px dashed #bfdbfe;
+            padding: 12px; border-radius: 10px; margin-top: 15px;
         }
-        
-        .btn-cancel {
-            background: var(--input-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border);
+        .installment-title { font-size: 0.8rem; font-weight: 700; color: #1e40af; text-transform: uppercase; margin-bottom: 4px; }
+        .installment-amount { font-size: 1.2rem; font-weight: 700; color: #1d4ed8; }
+
+        /* Cutoff Date Matrix UI Grid */
+        .cutoff-matrix-title { font-size: 0.8rem; font-weight: 700; color: #374151; text-transform: uppercase; margin: 15px 0 6px 0; }
+        .cutoff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 8px; max-height: 160px; overflow-y: auto; padding-right: 4px; }
+        .cutoff-badge { 
+            background: #f3f4f6; border: 1px solid #e5e7eb; padding: 8px; border-radius: 8px; 
+            font-size: 0.75rem; font-weight: 600; text-align: center; color: #4b5563;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .btn-cancel:hover { background: var(--border); }
+        .cutoff-badge.success-processed {
+            background: #d1fae5; border-color: #34d399; color: #065f46; font-weight: 700;
+        }
+
+        /* Filter and Summary Panel Styling */
+        .filter-panel { background: #f9fafb; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 15px; }
+        .summary-badge { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 0.9rem; margin-top: 8px; color: #374151; background: #fff; padding: 8px 12px; border-radius: 8px; border: 1px solid #e5e7eb; }
+
+        /* History List */
+        .history-list { margin-top: 10px; max-height: 500px; overflow-y: auto; }
+        .history-item { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #f3f4f6;
+        }
+        .history-info .name { font-weight: 700; font-size: 0.95rem; }
+        .history-info .desc { font-size: 0.8rem; color: #6b7280; }
+        .history-date { font-size: 0.75rem; color: #9ca3af; }
+        .amount-tag { font-weight: 700; font-size: 1rem; }
+        .amt-pos { color: var(--primary); }
+        .amt-neg { color: var(--withdraw); }
+
+        /* Form Submissions Layout Button */
+        .submit-btn {
+            background: var(--primary); color: white; border: none; padding: 12px;
+            width: 100%; border-radius: 10px; font-weight: 700; font-size: 1rem;
+            cursor: pointer; margin-top: 10px; transition: opacity 0.2s;
+        }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            .balance-amount { font-size: 1.8rem; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- App Header (Profile and Theme Switches) -->
-        <div class="app-header">
-            <div class="profile-switcher">
-                <button id="btn-profile-main" class="profile-btn active" onclick="switchProfile('main')">Main Ledger</button>
-                <button id="btn-profile-mom" class="profile-btn" onclick="switchProfile('mom')">Mom's Loans</button>
-            </div>
-            <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
-        </div>
-
-        <!-- Main Metrics Panel -->
-        <div class="card total-card" id="totalCardBg">
-            <h3 id="dashboardTitle">Total Outstanding</h3>
-            <div id="totalOutstanding" class="total-amount">₱0.00</div>
-        </div>
-
-        <!-- Collection Goal Tracker Card -->
-        <div class="card" id="goalTrackerCard">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h2 style="margin: 0; font-size: 16px;">🎯 Collection Goal Tracker</h2>
-                <button class="btn-update" id="toggleGoalBtn" style="padding: 4px 10px; font-size: 12px; width: auto;" onclick="toggleGoalConfig()">Setup Goal</button>
-            </div>
-            
-            <!-- Configuration section -->
-            <div id="goalConfigSection" style="display: none; background: var(--input-bg); padding: 14px; border-radius: 10px; margin-bottom: 14px; border: 1px solid var(--border);">
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <div class="form-group" style="flex: 1; min-width: 120px; margin-bottom: 8px;">
-                        <label style="font-size: 11px;">Target Collection</label>
-                        <input type="number" id="inputGoalAmount" placeholder="100000" style="padding: 8px 12px; font-size: 14px;">
-                    </div>
-                    <div class="form-group" style="flex: 1; min-width: 120px; margin-bottom: 8px;">
-                        <label style="font-size: 11px;">Target Deadline</label>
-                        <input type="date" id="inputGoalDate" style="padding: 8px 12px; font-size: 14px;">
-                    </div>
+<div class="container">
+    <div class="balance-card">
+        <div class="balance-grid">
+            <div>
+                <div class="balance-label">
+                    Total Pooled Savings 
+                    <button class="visibility-btn" onclick="toggleVisibility()" id="eyeBtn">Hide</button>
                 </div>
-                <button class="btn-submit" id="saveGoalBtn" style="padding: 10px; font-size: 13px; margin-top: 4px;" onclick="saveGoalSettings()">Save Target to Database</button>
+                <div class="balance-amount" id="totalBalance">₱0.00</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="balance-label">Active Savings Balance</div>
+                <div id="allocatedAmount" style="font-size: 1.2rem; font-weight: 700;">₱0.00</div>
+            </div>
+        </div>
+        
+        <div class="target-container">
+            <div class="target-meta">
+                <span id="targetNameDisplay">Target Savings Goal</span>
+                <span id="targetPercentDisplay">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div id="progressBar" class="progress-fill"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-top: 8px; opacity: 0.8;" id="targetFooter">
+                <span id="goalTimeframeDisplay">Continuous Plan</span>
+                <span id="remainingDisplay">Target: ₱0.00</span>
+            </div>
+        </div>
+        <div id="lastUpdate" style="font-size: 0.7rem; opacity: 0.7; margin-top: 10px;">Updating...</div>
+    </div>
+
+    <div class="grid">
+        <div class="left-col">
+            <div class="card">
+                <h3 style="margin-bottom:15px;">Savings Goal Target</h3>
+                
+                <div class="form-group">
+                    <label>Goal Name</label>
+                    <input type="text" id="goalName" placeholder="e.g., Emergency Fund" oninput="saveAndCalculateGoals()">
+                </div>
+                
+                <div class="form-group">
+                    <label>Target Financial Goal (₱)</label>
+                    <input type="number" id="targetAmount" value="20000" oninput="saveAndCalculateGoals()">
+                </div>
+
+                <div class="form-group">
+                    <label>Target Completion Date</label>
+                    <input type="date" id="targetDeadline" onchange="saveAndCalculateGoals()">
+                </div>
+
+                <!-- Balanced Installment Plan Assessment Framework Window -->
+                <div class="installment-panel">
+                    <div class="installment-title" id="installmentLabel">Adjusted Cutoff Plan</div>
+                    <div class="installment-amount" id="installmentPlanDisplay">₱0.00 / cutoff</div>
+                    <div style="font-size: 0.75rem; color: #4b5563; margin-top: 2px;" id="cutoffCountDisplay">0 remaining cutoffs (15th/30th)</div>
+                </div>
+
+                <!-- Timeline Visualizing Schedule Output Interface Component -->
+                <div class="cutoff-matrix-title">Projected Cutoff Matrix Schedule</div>
+                <div id="cutoffGridUI" class="cutoff-grid"></div>
             </div>
 
-            <div class="goal-meta">
-                <div><strong>Paid Progress:</strong> <span id="goalProgressText">₱0.00 / ₱100,000.00</span></div>
-                <div><span id="goalPercentText" style="font-weight: bold; color: var(--success);">0%</span></div>
-            </div>
-            
-            <div class="progress-container">
-                <div class="progress-bar" id="goalProgressBar"></div>
-            </div>
-            
-            <div class="goal-meta" style="font-size: 12px;">
-                <div id="goalDaysRemaining">Calculations pending...</div>
-                <div id="goalTargetDateDisplay">Target: Pending</div>
-            </div>
-
-            <!-- Installment info block -->
-            <div class="installment-info">
-                <span>🗓️ Estimated Monthly Installment:</span>
-                <span id="goalMonthlyInstallmentText">₱0.00</span>
+            <div class="card">
+                <h3>Add Record</h3>
+                <form id="savingsForm">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="name" placeholder="Who's saving?" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Transaction Type</label>
+                            <select id="type">
+                                <option value="Debit">Debit (Deposit)</option>
+                                <option value="Withdraw">Withdraw (Expense)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount (PHP)</label>
+                            <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="description" placeholder="What's this for?" required>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn">Save Entry</button>
+                </form>
             </div>
         </div>
 
-        <!-- Entry Form Box -->
         <div class="card">
-            <h2>New Record</h2>
-            <form id="balanceForm">
-                <div class="form-group">
-                    <label for="name">Customer Name</label>
-                    <input type="text" id="name" placeholder="e.g. Juan Dela Cruz" required>
+            <h3>Recent Activity 
+                <span id="loader" style="font-size: 0.8rem; color: var(--primary); font-weight: normal;"></span>
+            </h3>
+            
+            <div class="filter-panel">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Filter Activity By Contributor Name</label>
+                    <select id="nameFilterSelect" onchange="handleFilterChange()">
+                        <option value="ALL">-- View All Contributor Streams --</option>
+                    </select>
                 </div>
-                
-                <div class="form-group">
-                    <label for="amount">Outstanding Amount</label>
-                    <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
-                </div>
-                
-                <button type="submit" class="btn-submit">Add to Ledger</button>
-            </form>
-            <div id="statusMessage" class="status"></div>
-        </div>
-
-        <!-- Main Workspace Panel -->
-        <div class="card" style="padding: 16px;">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('ledgerTab', this)">Active Ledger</button>
-                <button class="tab-btn" onclick="switchTab('historyTab', this)">History & Reverts</button>
-            </div>
-
-            <!-- TAB 1: LEDGER -->
-            <div id="ledgerTab" class="tab-content active">
-                <div class="form-group" style="display: flex; gap: 10px;">
-                    <input type="text" id="ledgerSearch" oninput="filterLedger()" placeholder="🔍 Search active accounts by name..." style="flex: 1; margin-bottom: 0;">
-                    <button class="btn-update" onclick="exportLedgerToPDF()" style="width: auto; white-space: nowrap; padding: 0 16px; border-color: var(--primary); font-weight: 600;">📄 Export PDF</button>
-                </div>
-                <div id="ledgerList" class="list-container">
-                    <div class="empty-msg">Loading records...</div>
+                <div class="summary-badge">
+                    <span>Filtered Running Subtotal:</span>
+                    <span id="filteredTotalDisplay">₱0.00</span>
                 </div>
             </div>
 
-            <!-- TAB 2: HISTORY -->
-            <div id="historyTab" class="tab-content">
-                <div class="form-group">
-                    <input type="text" id="historySearch" oninput="filterHistory()" placeholder="🔍 Search receipts by name...">
-                </div>
-                <div id="historyList" class="list-container">
-                    <div class="empty-msg">No payments logged yet.</div>
-                </div>
-            </div>
+            <div id="historyList" class="history-list"></div>
         </div>
     </div>
+</div>
 
-    <!-- UPDATE TOTAL BALANCE MODAL -->
-    <div id="updateModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Update Total Balance</h3>
-                <p id="updateModalSubtitle">Client details</p>
-            </div>
-            
-            <div class="form-group">
-                <label>New Total Outstanding Balance</label>
-                <input type="number" id="newTotalAmount" step="0.01" min="0.01" placeholder="0.00">
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
-                <button class="btn-submit" onclick="confirmUpdate()">Confirm Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- PAYMENT MODAL -->
-    <div id="paymentModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Process Payment</h3>
-                <p id="modalSubtitle">Client details</p>
-            </div>
-            
-            <div class="form-group">
-                <label>Amount to Pay</label>
-                <input type="number" id="modalAmount" step="0.01" min="0.01" placeholder="0.00">
-            </div>
-            
-            <div class="form-group">
-                <label>Date of Payment</label>
-                <input type="date" id="modalDate">
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-                <button class="btn-submit" onclick="confirmPayment()">Confirm Payment</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- REVERT MODAL -->
-    <div id="revertModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="color: var(--danger);">Revert Payment</h3>
-                <p id="revertModalSubtitle">Client details</p>
-            </div>
-            
-            <p style="font-size: 14px; margin-bottom: 24px; color: var(--text-main); line-height: 1.5;">
-                Are you sure you want to revert this transaction? The payment receipt will be permanently deleted and the amount will be restored to the active ledger.
-            </p>
-            
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeRevertModal()">Cancel</button>
-                <button class="btn-danger" onclick="confirmRevert()">Yes, Revert</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-    const rootUrl = "https://financial-ee5b7-default-rtdb.firebaseio.com/";
-
-    // State Variables
-    let currentProfile = 'main'; // 'main' or 'mom'
+<script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwxtvqp3h_tDAIpf3FtljWUB663_7JJTaYo77hYxbVm6GVpYgtxd5ScihbhD91hCuWMXg/exec';
     
-    // DOM Elements
-    const balanceForm = document.getElementById('balanceForm');
-    const ledgerList = document.getElementById('ledgerList');
-    const historyList = document.getElementById('historyList');
-    const totalOutstandingEl = document.getElementById('totalOutstanding');
-    const dashboardTitle = document.getElementById('dashboardTitle');
-    const totalCardBg = document.getElementById('totalCardBg');
-    
-    const ledgerSearch = document.getElementById('ledgerSearch');
-    const historySearch = document.getElementById('historySearch');
-    
-    // Update Balance Modal Elements
-    const updateModal = document.getElementById('updateModal');
-    const updateModalSubtitle = document.getElementById('updateModalSubtitle');
-    const newTotalAmount = document.getElementById('newTotalAmount');
+    let currentTotalSavings = 0;
+    let isHidden = false;
+    let rawData = [];
+    let singleGoal = { name: "Travel Fund", target: 20000, deadline: "2026-12-30" };
 
-    // Payment Modal Elements
-    const paymentModal = document.getElementById('paymentModal');
-    const modalSubtitle = document.getElementById('modalSubtitle');
-    const modalAmount = document.getElementById('modalAmount');
-    const modalDate = document.getElementById('modalDate');
-
-    // Revert Modal Elements
-    const revertModal = document.getElementById('revertModal');
-    const revertModalSubtitle = document.getElementById('revertModalSubtitle');
-
-    let globalLedgerCache = [];
-    let globalHistoryCache = []; 
-    
-    let currentUpdateContext = null;
-    let currentPaymentContext = null; 
-    let currentRevertContext = null;
-
-    const pesoFormatter = new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: 'PHP'
-    });
-
-    // --- DARK MODE LOGIC ---
-    function initTheme() {
-        const savedTheme = localStorage.getItem('app-theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        document.getElementById('themeIcon').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-    }
-
-    // --- PROFILE SWITCHER LOGIC ---
-    function getBalEndpoint() { return currentProfile === 'main' ? 'balances' : 'moms_balances'; }
-    function getHistEndpoint() { return currentProfile === 'main' ? 'history' : 'moms_history'; }
-    function getGoalEndpoint() { return currentProfile === 'main' ? 'goals_main' : 'goals_mom'; }
-
-    function toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    window.onload = () => {
+        loadGoalProfile();
         
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('app-theme', newTheme);
-        document.getElementById('themeIcon').textContent = newTheme === 'dark' ? '☀️' : '🌙';
-    }
+        isHidden = localStorage.getItem('savingsHidden') === 'true';
+        updateEyeButton();
 
-    function switchProfile(profile) {
-        currentProfile = profile;
+        document.getElementById('date').valueAsDate = new Date();
         
-        // UI Updates
-        document.getElementById('btn-profile-main').classList.toggle('active', profile === 'main');
-        document.getElementById('btn-profile-mom').classList.toggle('active', profile === 'mom');
-        
-        if (profile === 'main') {
-            dashboardTitle.textContent = 'Main Ledger Outstanding';
-            totalCardBg.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'; 
-        } else {
-            dashboardTitle.textContent = "Mom's Loans Outstanding";
-            totalCardBg.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'; 
+        if(!singleGoal.deadline) {
+            const defaultDate = new Date();
+            defaultDate.setMonth(defaultDate.getMonth() + 6);
+            singleGoal.deadline = defaultDate.toISOString().split('T')[0];
         }
+        
+        hydrateGoalForm();
+        fetchData();
+    };
 
-        ledgerSearch.value = '';
-        historySearch.value = '';
-
-        loadData();
-    }
-
-    // --- TABS LOGIC ---
-    function switchTab(tabId, buttonEl) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        buttonEl.classList.add('active');
-    }
-
-    // --- LOAD DATA (DYNAMIC BASED ON PROFILE) ---
-    async function loadData() {
-        ledgerList.innerHTML = `<div class="empty-msg">Loading records...</div>`;
-        historyList.innerHTML = `<div class="empty-msg">Loading records...</div>`;
-        totalOutstandingEl.textContent = "₱0.00";
-
-        try {
-            const balNode = getBalEndpoint();
-            const histNode = getHistEndpoint();
-            const goalNode = getGoalEndpoint();
-
-            const [balanceRes, historyRes, goalRes] = await Promise.all([
-                fetch(`${rootUrl}${balNode}.json`),
-                fetch(`${rootUrl}${histNode}.json`),
-                fetch(`${rootUrl}${goalNode}.json`)
-            ]);
-
-            const balances = await balanceRes.json();
-            const history = await historyRes.json();
-            const goalData = await goalRes.json();
-
-            renderLedger(balances);
-            renderHistory(history);
-            updateGoalTracker(goalData);
-        } catch (error) {
-            console.error("Sync error:", error);
-            ledgerList.innerHTML = `<div class="empty-msg" style="color: var(--danger);">Connection failed. Check network.</div>`;
-            historyList.innerHTML = `<div class="empty-msg" style="color: var(--danger);">Connection failed. Check network.</div>`;
+    function loadGoalProfile() {
+        const stored = localStorage.getItem('singleSavingsGoal');
+        if (stored) {
+            try { singleGoal = JSON.parse(stored); } catch(e) { }
         }
     }
 
-    // --- LEDGER LOGIC ---
-    function renderLedger(data) {
-        globalLedgerCache = [];
-        let totalSum = 0;
-
-        if (data && Object.keys(data).length > 0) {
-            Object.keys(data).forEach(key => {
-                const record = data[key];
-                if (record && typeof record === 'object') {
-                    const currentBalance = parseFloat(record.amount || 0);
-                    if (currentBalance > 0) {
-                        totalSum += currentBalance;
-                        globalLedgerCache.push({ key, name: record.name, amount: currentBalance });
-                    }
-                }
-            });
-        }
-
-        globalLedgerCache.sort((a, b) => b.amount - a.amount);
-        totalOutstandingEl.textContent = pesoFormatter.format(totalSum);
-        filterLedger();
+    function hydrateGoalForm() {
+        document.getElementById('goalName').value = singleGoal.name;
+        document.getElementById('targetAmount').value = singleGoal.target;
+        document.getElementById('targetDeadline').value = singleGoal.deadline || '';
     }
 
-    function displayLedgerItems(items) {
-        ledgerList.innerHTML = '';
-        if (items.length === 0) {
-            ledgerList.innerHTML = `<div class="empty-msg">No matching active balances.</div>`;
-            return;
-        }
-
-        items.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'balance-item';
-            const safeName = item.name.replace(/'/g, "\\'");
-            
-            itemDiv.innerHTML = `
-                <div class="item-details">
-                    <div class="item-name">${item.name || 'Unknown'}</div>
-                    <div class="item-meta">Active Account</div>
-                </div>
-                <div class="item-right">
-                    <div class="item-amount">${pesoFormatter.format(item.amount)}</div>
-                    <div class="item-actions-wrapper">
-                        <button class="btn-update" onclick="openUpdateModal('${item.key}', '${safeName}', ${item.amount})">Update</button>
-                        <button class="btn-pay" onclick="openPaymentModal('${item.key}', '${safeName}', ${item.amount})">Pay Now</button>
-                    </div>
-                </div>
-            `;
-            ledgerList.appendChild(itemDiv);
-        });
+    function saveAndCalculateGoals() {
+        singleGoal.name = document.getElementById('goalName').value || "Savings Goal";
+        singleGoal.target = parseFloat(document.getElementById('targetAmount').value) || 0;
+        singleGoal.deadline = document.getElementById('targetDeadline').value;
+        
+        localStorage.setItem('singleSavingsGoal', JSON.stringify(singleGoal));
+        updateCalculations();
     }
 
-    function filterLedger() {
-        const query = ledgerSearch.value.toLowerCase().trim();
-        if (!query) {
-            displayLedgerItems(globalLedgerCache);
-            return;
-        }
-        const filtered = globalLedgerCache.filter(item => 
-            item.name.toLowerCase().includes(query)
-        );
-        displayLedgerItems(filtered);
+    function toggleVisibility() {
+        isHidden = !isHidden;
+        localStorage.setItem('savingsHidden', isHidden);
+        updateEyeButton();
+        renderData(); 
     }
 
-    // --- HISTORY LOGIC ---
-    function renderHistory(data) {
-        globalHistoryCache = [];
-        if (data && Object.keys(data).length > 0) {
-            globalHistoryCache = Object.keys(data).map(key => ({
-                historyId: key,
-                ...data[key]
-            })).reverse();
-        }
-        filterHistory(); 
+    function updateEyeButton() {
+        document.getElementById('eyeBtn').innerText = isHidden ? "Show" : "Hide";
     }
 
-    function displayHistoryItems(items) {
-        historyList.innerHTML = '';
-        if (items.length === 0) {
-            historyList.innerHTML = `<div class="empty-msg">No matching history entries.</div>`;
-            return;
-        }
-
-        items.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'balance-item';
-            const safeName = item.name.replace(/'/g, "\\'");
-            
-            itemDiv.innerHTML = `
-                <div class="item-details">
-                    <div class="item-name">${item.name}</div>
-                    <div class="item-meta">Paid on: ${item.date}</div>
-                </div>
-                <div class="item-right">
-                    <div class="item-amount credit">-${pesoFormatter.format(item.paidAmount)}</div>
-                    <button class="btn-revert" onclick="openRevertModal('${item.historyId}', '${item.balanceKey}', ${item.paidAmount}, '${safeName}')">Revert</button>
-                </div>
-            `;
-            historyList.appendChild(itemDiv);
-        });
+    function formatAmount(num) {
+        if (isHidden) return "₱ ****";
+        return `₱${num.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
     }
 
-    function filterHistory() {
-        const query = historySearch.value.toLowerCase().trim();
-        if (!query) {
-            displayHistoryItems(globalHistoryCache);
-            return;
-        }
-        const filtered = globalHistoryCache.filter(item => 
-            item.name.toLowerCase().includes(query)
-        );
-        displayHistoryItems(filtered);
-    }
-
-    // --- GOAL TRACKER SYSTEM LOGIC ---
-    function updateGoalTracker(goalData) {
-        let targetAmount = 100000;
-        let targetDateStr = "2027-06-04";
-
-        if (goalData) {
-            targetAmount = parseFloat(goalData.amount) || targetAmount;
-            targetDateStr = goalData.date || targetDateStr;
-        }
+    // Parse array mapping parameters for chronological upcoming pay periods
+    function getCutoffsList(targetDateStr) {
+        if (!targetDateStr) return [];
         
-        document.getElementById('inputGoalAmount').value = targetAmount;
-        document.getElementById('inputGoalDate').value = targetDateStr;
-
-        let totalPaid = 0;
-        globalHistoryCache.forEach(item => {
-            totalPaid += parseFloat(item.paidAmount || 0);
-        });
-
-        let percentage = targetAmount > 0 ? (totalPaid / targetAmount) * 100 : 0;
-        if (percentage > 100) percentage = 100;
-
-        document.getElementById('goalProgressText').textContent = `${pesoFormatter.format(totalPaid)} / ${pesoFormatter.format(targetAmount)}`;
-        document.getElementById('goalPercentText').textContent = `${percentage.toFixed(1)}%`;
-        document.getElementById('goalProgressBar').style.width = `${percentage}%`;
-
-        // Calculate Days and Installments
-        const today = new Date(); 
-        const deadline = new Date(targetDateStr);
-        const timeDiff = deadline.getTime() - today.getTime();
-        const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
-        const formattedTargetDate = deadline.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        document.getElementById('goalTargetDateDisplay').textContent = `Target: ${formattedTargetDate}`;
-
-        const daysRemainingEl = document.getElementById('goalDaysRemaining');
-        const installmentEl = document.getElementById('goalMonthlyInstallmentText');
-        
-        // Calculate missing months to deadline
-        let monthsRemaining = (deadline.getFullYear() - today.getFullYear()) * 12;
-        monthsRemaining -= today.getMonth();
-        monthsRemaining += deadline.getMonth();
-        if (deadline.getDate() < today.getDate()) {
-            monthsRemaining--;
-        }
-        
-        const remainingBalance = Math.max(0, targetAmount - totalPaid);
-
-        if (isNaN(daysRemaining)) {
-            daysRemainingEl.textContent = "Please set a valid tracking target date.";
-            installmentEl.textContent = "₱0.00";
-        } else if (daysRemaining > 0) {
-            daysRemainingEl.textContent = `⏳ ${daysRemaining} days left to achieve your payment goal`;
-            daysRemainingEl.style.color = "var(--text-muted)";
-            
-            // Monthly Installment Math
-            const safeDivisorMonths = Math.max(1, monthsRemaining);
-            const requiredMonthly = remainingBalance / safeDivisorMonths;
-            installmentEl.textContent = `${pesoFormatter.format(requiredMonthly)} / mo (${safeDivisorMonths} mos left)`;
-            installmentEl.style.color = "var(--primary)";
-
-        } else if (daysRemaining === 0) {
-            daysRemainingEl.textContent = "🎯 Milestone day reached! Today is your target deadline!";
-            daysRemainingEl.style.color = "var(--warning)";
-            installmentEl.textContent = "Immediate payment required";
-        } else {
-            daysRemainingEl.textContent = `⚠️ Target timeframe completed (${Math.abs(daysRemaining)} days ago)`;
-            daysRemainingEl.style.color = "var(--danger)";
-            installmentEl.textContent = "Goal Expired";
-            installmentEl.style.color = "var(--danger)";
-        }
-
-        // Complete Goal Check
-        if (remainingBalance === 0 && !isNaN(daysRemaining)) {
-            installmentEl.textContent = "🎉 Goal Achieved!";
-            installmentEl.style.color = "var(--success)";
-        }
-    }
-
-    function toggleGoalConfig() {
-        const section = document.getElementById('goalConfigSection');
-        const btn = document.getElementById('toggleGoalBtn');
-        if (section.style.display === 'none') {
-            section.style.display = 'block';
-            btn.textContent = 'Hide Setup';
-        } else {
-            section.style.display = 'none';
-            btn.textContent = 'Setup Goal';
-        }
-    }
-
-    async function saveGoalSettings() {
-        const amountValue = parseFloat(document.getElementById('inputGoalAmount').value);
-        const dateValue = document.getElementById('inputGoalDate').value;
-
-        if (isNaN(amountValue) || amountValue <= 0) {
-            alert("Goal amount must be a positive number.");
-            return;
-        }
-        if (!dateValue) {
-            alert("Please input a valid deadline calendar date.");
-            return;
-        }
-
-        const saveBtn = document.getElementById('saveGoalBtn');
-        saveBtn.textContent = "Saving to Database...";
-
-        try {
-            await fetch(`${rootUrl}${getGoalEndpoint()}.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: amountValue, date: dateValue })
-            });
-            toggleGoalConfig();
-            loadData(); // Reload tracker to fetch latest from DB and apply UI math
-        } catch (error) {
-            alert("Failed to save goal across devices. Check your network.");
-        } finally {
-            saveBtn.textContent = "Save Target to Database";
-        }
-    }
-
-    // --- PDF EXPORT LOGIC ---
-    function exportLedgerToPDF() {
-        if (globalLedgerCache.length === 0) {
-            alert("There are no active accounts to export inside this ledger.");
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        const primaryColor = currentProfile === 'main' ? [37, 99, 235] : [139, 92, 246]; 
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(20);
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        const titleText = currentProfile === 'main' ? "Main Ledger - Outstanding Balances" : "Mom's Loans - Outstanding Balances";
-        doc.text(titleText, 14, 22);
-        
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(100, 116, 139);
-        const currentDateStr = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-        doc.text(`Report Generated On: ${currentDateStr}`, 14, 30);
-        
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.5);
-        doc.line(14, 34, 196, 34);
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.setTextColor(30, 41, 59);
-        doc.text("Customer Account Name", 14, 43);
-        doc.text("Total Outstanding Balance", 145, 43);
-        
-        doc.line(14, 47, 196, 47);
-        
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
-        doc.setTextColor(51, 65, 85);
-        
-        let yAxisPos = 55;
-        let cumulativeSum = 0;
-        
-        globalLedgerCache.forEach((item) => {
-            if (yAxisPos > 275) {
-                doc.addPage();
-                yAxisPos = 20; 
-            }
-            
-            doc.text(item.name || 'Unknown Ledger Account', 14, yAxisPos);
-            doc.text(pesoFormatter.format(item.amount), 145, yAxisPos);
-            
-            cumulativeSum += item.amount;
-            yAxisPos += 9;
-        });
-        
-        if (yAxisPos > 265) { doc.addPage(); yAxisPos = 20; }
-        doc.line(14, yAxisPos - 2, 196, yAxisPos - 2);
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.setTextColor(15, 23, 42);
-        doc.text("TOTAL ACCUMULATED OUTSTANDING:", 14, yAxisPos + 6);
-        doc.text(pesoFormatter.format(cumulativeSum), 145, yAxisPos + 6);
-        
-        const documentSaveName = `${currentProfile}_ledger_report_${new Date().toISOString().split('T')[0]}.pdf`;
-        doc.save(documentSaveName);
-    }
-
-    // ADD NEW RECORD
-    balanceForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const payload = {
-            name: document.getElementById('name').value,
-            amount: parseFloat(document.getElementById('amount').value)
-        };
-
-        const btn = balanceForm.querySelector('.btn-submit');
-        btn.textContent = "Saving...";
-
-        try {
-            await fetch(`${rootUrl}${getBalEndpoint()}.json`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            balanceForm.reset();
-            loadData();
-        } catch (error) {
-            alert("Error saving entry.");
-        } finally {
-            btn.textContent = "Add to Ledger";
-        }
-    });
-
-    // --- UPDATE BALANCE MODAL LOGIC ---
-    function openUpdateModal(key, name, currentBalance) {
-        currentUpdateContext = { key, name, currentBalance };
-        updateModalSubtitle.textContent = `${name} • Current Total: ${pesoFormatter.format(currentBalance)}`;
-        newTotalAmount.value = currentBalance;
-        updateModal.classList.add('active');
-    }
-
-    function closeUpdateModal() {
-        updateModal.classList.remove('active');
-        currentUpdateContext = null;
-    }
-
-    async function confirmUpdate() {
-        if (!currentUpdateContext) return;
-
-        const updatedBalance = parseFloat(newTotalAmount.value);
-        if (isNaN(updatedBalance) || updatedBalance <= 0) {
-            alert("Please input a valid total amount greater than 0.");
-            return;
-        }
-
-        try {
-            await fetch(`${rootUrl}${getBalEndpoint()}/${currentUpdateContext.key}.json`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: updatedBalance })
-            });
-
-            closeUpdateModal();
-            loadData();
-        } catch (error) {
-            alert("Error updating database entry.");
-        }
-    }
-
-    // --- PAYMENT MODAL LOGIC ---
-    function openPaymentModal(key, name, currentBalance) {
-        currentPaymentContext = { key, name, currentBalance };
-        modalSubtitle.textContent = `${name} • Balance: ${pesoFormatter.format(currentBalance)}`;
-        modalAmount.value = currentBalance;
         const today = new Date();
-        modalDate.value = today.toISOString().split('T')[0];
-        paymentModal.classList.add('active');
+        const target = new Date(targetDateStr);
+        if (target <= today) return [];
+        
+        let cutoffs = [];
+        let loopDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        while (loopDate <= target) {
+            const day = loopDate.getDate();
+            const month = loopDate.getMonth();
+            const year = loopDate.getFullYear();
+            
+            let isCutoff = false;
+            if (day === 15 || day === 30) {
+                isCutoff = true;
+            } else if (day === 28 && month === 1 && (new Date(year, 1, 29).getMonth() !== 1)) {
+                isCutoff = true; // February non-leap year processing adjustments
+            }
+            
+            if (isCutoff) {
+                cutoffs.push({
+                    dateString: loopDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: new Date(loopDate)
+                });
+            }
+            loopDate.setDate(loopDate.getDate() + 1);
+        }
+        return cutoffs;
     }
 
-    function closePaymentModal() {
-        paymentModal.classList.remove('active');
-        currentPaymentContext = null;
+    function updateCalculations() {
+        document.getElementById('targetNameDisplay').innerText = singleGoal.name;
+        
+        // Accumulate active parameters representing absolute totals pooled inside balance
+        let totalSavingsPool = 0;
+        rawData.forEach(row => {
+            totalSavingsPool += parseFloat(row.amount);
+        });
+
+        const progressPercent = singleGoal.target > 0 ? Math.min((totalSavingsPool / singleGoal.target) * 100, 100) : 0;
+        
+        document.getElementById('totalBalance').innerText = formatAmount(totalSavingsPool);
+        document.getElementById('allocatedAmount').innerText = formatAmount(totalSavingsPool);
+        document.getElementById('targetPercentDisplay').innerText = progressPercent.toFixed(0) + "%";
+        document.getElementById('progressBar').style.width = progressPercent + "%";
+        document.getElementById('remainingDisplay').innerText = `Target: ₱${singleGoal.target.toLocaleString('en-PH')}`;
+
+        if (singleGoal.deadline) {
+            document.getElementById('goalTimeframeDisplay').innerText = `Target Date: ${new Date(singleGoal.deadline).toLocaleDateString()}`;
+        } else {
+            document.getElementById('goalTimeframeDisplay').innerText = "Continuous Plan";
+        }
+
+        // Installment Breakdown Pipeline Engine
+        const cutoffList = getCutoffsList(singleGoal.deadline);
+        const cutoffsRemaining = cutoffList.length;
+        
+        // dynamically lower total targets using the recent pooled savings metric configuration 
+        const outstandingAmountToSave = Math.max(singleGoal.target - totalSavingsPool, 0);
+        
+        document.getElementById('cutoffCountDisplay').innerText = `${cutoffsRemaining} pay periods remaining (15th/30th)`;
+        
+        let requiredInstallmentPerCutoff = 0;
+        if (cutoffsRemaining > 0 && outstandingAmountToSave > 0) {
+            requiredInstallmentPerCutoff = outstandingAmountToSave / cutoffsRemaining;
+            document.getElementById('installmentPlanDisplay').innerText = `${formatAmount(requiredInstallmentPerCutoff)} / cutoff`;
+        } else if (outstandingAmountToSave === 0 && singleGoal.target > 0) {
+            document.getElementById('installmentPlanDisplay').innerText = "Goal Fully Achieved! 🎉";
+        } else {
+            document.getElementById('installmentPlanDisplay').innerText = "₱0.00 / cutoff";
+        }
+
+        // Render visual micro elements tracking milestone intervals inside schedule grid components
+        renderCutoffScheduleUI(cutoffList, totalSavingsPool, requiredInstallmentPerCutoff);
     }
 
-    async function confirmPayment() {
-        if (!currentPaymentContext) return;
+    function renderCutoffScheduleUI(cutoffs, totalSavings, requiredPerCutoff) {
+        const gridContainer = document.getElementById('cutoffGridUI');
+        gridContainer.innerHTML = '';
         
-        const paymentAmount = parseFloat(modalAmount.value);
-        if (isNaN(paymentAmount) || paymentAmount <= 0) {
-            alert("Please input a valid amount greater than 0.");
-            return;
-        }
-        
-        if (paymentAmount > currentPaymentContext.currentBalance) {
-            alert("Payment cannot exceed the outstanding balance.");
+        if (cutoffs.length === 0) {
+            gridContainer.innerHTML = `<div style="grid-column: 1/-1; text-align:center; font-size:0.75rem; color:#9ca3af; padding:10px;">Select a future completion date to render schedule.</div>`;
             return;
         }
 
-        const dateInput = modalDate.value;
-        if (!dateInput) {
-            alert("Please select a date.");
-            return;
+        // Running balance checks to systematically trace successful intervals
+        let runningCoveragePool = totalSavings;
+
+        cutoffs.forEach((cutoff, index) => {
+            const badge = document.createElement('div');
+            badge.className = 'cutoff-badge';
+            badge.innerText = cutoff.dateString;
+
+            // When savings exist, the remaining targets drop, validating active/green statuses
+            if (runningCoveragePool >= requiredPerCutoff && requiredPerCutoff > 0) {
+                badge.classList.add('success-processed');
+                runningCoveragePool -= requiredPerCutoff; 
+            } else if (requiredPerCutoff === 0 && totalSavings >= singleGoal.target) {
+                badge.classList.add('success-processed');
+            }
+
+            gridContainer.appendChild(badge);
+        });
+    }
+
+    async function fetchData() {
+        const loader = document.getElementById('loader');
+        loader.innerText = "Refreshing...";
+        
+        try {
+            const response = await fetch(WEB_APP_URL);
+            rawData = await response.json();
+            
+            extractUniqueNamesToFilter();
+            renderData();
+            loader.innerText = "";
+        } catch (err) {
+            console.error(err);
+            loader.innerText = "Error";
+        }
+    }
+
+    function extractUniqueNamesToFilter() {
+        const filterSelect = document.getElementById('nameFilterSelect');
+        const previousSelectedValue = filterSelect.value;
+        
+        const namesMap = new Set();
+        rawData.forEach(row => {
+            if (row.name && row.name.trim() !== '') {
+                namesMap.add(row.name.trim());
+            }
+        });
+        
+        filterSelect.innerHTML = '<option value="ALL">-- View All Contributor Streams --</option>';
+        
+        Array.from(namesMap).sort().forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.innerText = name;
+            filterSelect.appendChild(opt);
+        });
+        
+        if (namesMap.has(previousSelectedValue)) {
+            filterSelect.value = previousSelectedValue;
+        } else {
+            filterSelect.value = "ALL";
+        }
+    }
+
+    function handleFilterChange() {
+        renderData();
+    }
+
+    function renderData() {
+        const list = document.getElementById('historyList');
+        const filterValue = document.getElementById('nameFilterSelect').value;
+        
+        currentTotalSavings = 0;
+        let runningFilteredSum = 0;
+        list.innerHTML = '';
+        
+        rawData.forEach(row => currentTotalSavings += parseFloat(row.amount));
+
+        const processedActivityStack = [...rawData].reverse();
+
+        processedActivityStack.forEach(row => {
+            const amt = parseFloat(row.amount);
+            const rowOwnerName = (row.name || 'Anonymous').trim();
+            
+            const descriptionParts = row.description ? row.description.split('||') : [row.description || ''];
+            const pureDescriptionText = descriptionParts[0];
+
+            const matchesFilter = (filterValue === 'ALL' || rowOwnerName === filterValue);
+            
+            if (matchesFilter) {
+                runningFilteredSum += amt;
+                
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-info">
+                        <div class="name">${rowOwnerName}</div>
+                        <div class="desc">${pureDescriptionText} <span class="history-date">• ${new Date(row.date).toLocaleDateString()}</span></div>
+                    </div>
+                    <div class="amount-tag ${amt >= 0 ? 'amt-pos' : 'amt-neg'}">
+                        ${amt >= 0 ? '+' : ''}${formatAmount(amt).replace('₱ ', '')}
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+        });
+
+        document.getElementById('filteredTotalDisplay').innerText = formatAmount(runningFilteredSum);
+
+        if (list.children.length === 0) {
+            list.innerHTML = `<div style="text-align:center; color:#6b7280; font-size:0.85rem; padding: 20px 0;">No matching history instances here.</div>`;
         }
 
-        const newBalance = Math.max(0, currentPaymentContext.currentBalance - paymentAmount);
-        const receiptPayload = {
-            name: currentPaymentContext.name,
-            paidAmount: paymentAmount,
-            date: dateInput,
-            balanceKey: currentPaymentContext.key 
+        document.getElementById('lastUpdate').innerText = "Last sync: " + new Date().toLocaleTimeString();
+        updateCalculations();
+    }
+
+    document.getElementById('savingsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "Syncing...";
+
+        const formData = {
+            name: document.getElementById('name').value,
+            date: document.getElementById('date').value,
+            type: document.getElementById('type').value,
+            amount: document.getElementById('amount').value,
+            description: document.getElementById('description').value
         };
 
         try {
-            await fetch(`${rootUrl}${getHistEndpoint()}.json`, {
+            await fetch(WEB_APP_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(receiptPayload)
+                mode: 'no-cors',
+                body: JSON.stringify(formData)
             });
-
-            await fetch(`${rootUrl}${getBalEndpoint()}/${currentPaymentContext.key}.json`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: newBalance })
-            });
-
-            closePaymentModal();
-            loadData(); 
-        } catch (error) {
-            alert("Error processing payment.");
+            
+            document.getElementById('savingsForm').reset();
+            document.getElementById('date').valueAsDate = new Date();
+            await fetchData(); 
+        } catch (err) {
+            alert("Error saving transaction data.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Save Entry";
         }
-    }
-
-    // --- REVERT MODAL LOGIC ---
-    function openRevertModal(historyId, balanceKey, paidAmount, name) {
-        currentRevertContext = { historyId, balanceKey, paidAmount, name };
-        revertModalSubtitle.textContent = `${name} • Amount: ${pesoFormatter.format(paidAmount)}`;
-        revertModal.classList.add('active');
-    }
-
-    function closeRevertModal() {
-        revertModal.classList.remove('active');
-        currentRevertContext = null;
-    }
-
-    async function confirmRevert() {
-        if (!currentRevertContext) return;
-        
-        const { historyId, balanceKey, paidAmount, name } = currentRevertContext;
-        const balEndpoint = getBalEndpoint();
-        const histEndpoint = getHistEndpoint();
-
-        try {
-            const balRes = await fetch(`${rootUrl}${balEndpoint}/${balanceKey}.json`);
-            const balData = await balRes.json();
-
-            if (balData !== null) {
-                const newAmount = parseFloat(balData.amount || 0) + parseFloat(paidAmount);
-                await fetch(`${rootUrl}${balEndpoint}/${balanceKey}.json`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount: newAmount })
-                });
-            } else {
-                await fetch(`${rootUrl}${balEndpoint}/${balanceKey}.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, amount: paidAmount })
-                });
-            }
-
-            await fetch(`${rootUrl}${histEndpoint}/${historyId}.json`, {
-                method: 'DELETE'
-            });
-
-            closeRevertModal();
-            loadData();
-        } catch (error) {
-            console.error(error);
-            alert("Error reverting payment. Check connection.");
-        }
-    }
-
-    // Initialize 
-    initTheme();
-    loadData();
+    });
 </script>
+
 </body>
 </html>
